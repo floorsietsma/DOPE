@@ -1,70 +1,52 @@
-from django.http import HttpResponse, JsonResponse
-from django.contrib.auth.models import User, Group
-from rest_framework import viewsets
-from rest_framework import permissions
-from rest_framework.parsers import JSONParser
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
+from rest_framework.response import Response
+from django.http import Http404
 from engine.models import Machine
-from engine.serializers import UserSerializer, GroupSerializer, MachineSerializer
-
-class UserViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows users to be viewed or edited.
-    """
-    queryset = User.objects.all().order_by('-date_joined')
-    serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+from engine.serializers import MachineSerializer
 
 
-class GroupViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows groups to be viewed or edited.
-    """
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-@csrf_exempt
-def machine_list(request):
+class MachineList(APIView):
     """
     List all machines, or create a new machine.
     """
-    if request.method == 'GET':
+
+    def get(self, request, format=None):
         machines = Machine.objects.all()
         serializer = MachineSerializer(machines, many=True)
-        return JsonResponse(serializer.data, safe=False)
+        return Response(serializer.data)
 
-    elif request.method == 'POST':
-        data = JSONParser().parse(request)
-        serializer = MachineSerializer(data=data)
+    def post(self, request, format=None):
+        serializer = MachineSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@csrf_exempt
-def machine_detail(request, pk):
+class MachineDetail(APIView):
     """
     Retrieve, update or delete a machine.
     """
-    try:
-        machine = Machine.objects.get(pk=pk)
-    except Machine.DoesNotExist:
-        return HttpResponse(status=404)
+    def get_object(self, pk):
+        try:
+            return Machine.objects.get(pk=pk)
+        except Machine.DoesNotExist:
+            raise Http404
 
-    if request.method == 'GET':
+    def get(self, request, pk, format=None):
+        machine = self.get_object(pk)
         serializer = MachineSerializer(machine)
-        return JsonResponse(serializer.data)
+        return Response(serializer.data)
 
-    elif request.method == 'PUT':
-        data = JSONParser().parse(request)
-        serializer = MachineSerializer(machine, data=data)
+    def put(self, request, pk, format=None):
+        machine = self.get_object(pk)
+        serializer = MachineSerializer(machine, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif request.method == 'DELETE':
+    def delete(self, request, pk, format=None):
+        machine = self.get_object(pk)
         machine.delete()
-        return HttpResponse(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)

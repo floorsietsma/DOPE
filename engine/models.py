@@ -13,3 +13,4 @@ class Machine(models.Model):
 
     class Meta:
         ordering = ['name']
+
