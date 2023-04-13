@@ -43,9 +43,15 @@ class Product(models.Model):
 class LineStep(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
-    order = models.PositiveIntegerField()
+    number = models.PositiveIntegerField()
     leadTimeSeconds = models.PositiveIntegerField() # in seconds
 
     class Meta:
-        unique_together = (('product', 'order'),)
-        ordering = ['product', 'order']
+        unique_together = (('product', 'number'),)
+        ordering = ['product', 'number']
+
+
+class Order(models.Model):
+    factory = models.ForeignKey(Factory, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
