@@ -1,45 +1,51 @@
 from django.db import models
 
+
 class Factory(models.Model):
+    user = models.ForeignKey('auth.User', related_name='factories', on_delete=models.CASCADE)
     name = models.CharField(max_length=50, blank=True, default='')
     description = models.CharField(max_length=200, blank=True, default='')
 
-    class Meta:
-        ordering = ['name']
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
 
-
-class MachineModel(models.Model):
-    name = models.CharField(max_length=50, blank=True, default='')
-    description = models.CharField(max_length=200, blank=True, default='')
+    def __str__(self):
+        return f"{self.id} - {self.name}"
 
     class Meta:
         ordering = ['name']
 
 
 class Machine(models.Model):
+    name = models.CharField(max_length=50, blank=True, default='')
+    description = models.CharField(max_length=200, blank=True, default='')
     factory = models.ForeignKey(Factory, on_delete=models.CASCADE)
     buildDate = models.DateField()
-    machineModel = models.ForeignKey(MachineModel, on_delete=models.CASCADE)
     costPerMinute = models.DecimalField(max_digits=10, decimal_places=2)
 
+    def __str__(self):
+        return self.name
+
     class Meta:
-        ordering = ['machineModel', 'buildDate']
+        ordering = ['name', 'buildDate']
+
 
 class Product(models.Model):
     name = models.CharField(max_length=50, blank=True, default='')
     description = models.CharField(max_length=200, blank=True, default='')
-    revenue = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    materialCost = models.DecimalField(max_digits=10, decimal_places=2)
 
-class ProductionLine(models.Model):
+    def __str__(self):
+        return self.name
+
+
+class LineStep(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    lineSteps = models.ManytoManyField(MachineModel, through='LineStepInfo')
-
-class LineStepInfo(models.Model):
-    machineModel = models.ForeignKey(MachineModel)
-    line = models.ForeignKey(ProductionLine)
+    machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
     order = models.PositiveIntegerField()
+    leadTimeSeconds = models.PositiveIntegerField() # in seconds
 
     class Meta:
-        unique_together = (('line', 'order'),)
-        ordering = ['line', 'order']
-
+        unique_together = (('product', 'order'),)
+        ordering = ['product', 'order']
